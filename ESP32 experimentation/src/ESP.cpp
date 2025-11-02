@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 // --- WiFi Credentials ---
-const char* ssid = "e^x";
-const char* password = "Ferrariisthebestteam16";
+const char* ssid = "SSID";
+const char* password = "PWD";
 
 // --- Server & WebSocket Setup ---
 AsyncWebServer server(80);
