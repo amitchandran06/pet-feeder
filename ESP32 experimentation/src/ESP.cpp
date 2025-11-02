@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 // --- WiFi Credentials ---
-const char* ssid = "SSID";
-const char* password = "PASSWORD";
+const char* ssid = "e^x";
+const char* password = "Ferrariisthebestteam16";
 
 // --- Server & WebSocket Setup ---
 AsyncWebServer server(80);
@@ -28,14 +28,28 @@ const char* index_html = R"rawliteral(
     body { font-family: Arial, sans-serif; text-align: center; }
     .data-box { background-color: #f0f0f0; padding: 20px; border-radius: 8px; display: inline-block; margin-top: 20px; }
     h1 { color: #333; }
+    .big-button {
+  padding: 15px 32px; 
+  font-size: 40px;    
+  cursor: pointer;  
+  margin-bottom: 20px;  
+}
     #sensorValue { font-size: 3em; color: #007bff; }
   </style>
 </head>
 <body>
   <h1>Live WebSocket Stream</h1>
   <div class="data-box">
-    <p>Time (s) since reset:</p>
-    <span id="sensorValue">--</span> 
+    <p>Time Since Reset (S):</p>
+    <span id="sensorValue">--</span> s
+  </div>
+
+  <div class="controls">
+    <h2>Controls</h2>
+    <button class ="big-button"onclick="sendMessage('LED_ON')">Turn LED ON</button>
+
+  
+    <button class ="big-button"onclick="sendMessage('LED_OFF')">Turn LED OFF</button>
   </div>
 
 <script>
@@ -83,6 +97,10 @@ function onClose(event) {
 function onError(event) {
   console.log('WebSocket error detected: ' + event.data);
 }
+  function sendMessage(message) {
+  console.log("Sending: " + message);
+  websocket.send(message);
+}
 </script>
 </body>
 </html>
@@ -91,6 +109,7 @@ function onError(event) {
 // --- ESP32 Server-Side Functions ---
 
 // Handles WebSocket events (connect, disconnect, receive)
+// Handles WebSocket events
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   switch(type) {
     case WS_EVT_CONNECT:
@@ -99,10 +118,30 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     case WS_EVT_DISCONNECT:
       Serial.printf("WebSocket client #%u disconnected\n", client->id());
       break;
-    case WS_EVT_DATA:
-      // If the client sends data, you can read it here
-      // For this example, we are only sending data, not receiving.
+      
+    // NEW: Handle incoming data from the client
+    case WS_EVT_DATA: { // The {} create a new scope for the variable
+      AwsFrameInfo *info = (AwsFrameInfo*)arg;
+      if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+        // Convert the received byte array to a String
+        String message = "";
+        for (size_t i = 0; i < len; i++) {
+          message += (char)data[i];
+        }
+        
+        Serial.printf("Received message from client #%u: %s\n", client->id(), message.c_str());
+
+        // Process the command
+        if(message == "LED_ON"){
+          digitalWrite(5,HIGH);
+        }
+        else if (message == "LED_OFF"){
+          digitalWrite(5,LOW);
+        }
+      }
       break;
+    }
+      
     case WS_EVT_PONG:
     case WS_EVT_ERROR:
       break;
@@ -118,6 +157,8 @@ void notifyClients() {
 }
 
 void setup() {
+  pinMode(5,OUTPUT);
+  digitalWrite(5,HIGH);
   Serial.begin(115200);
 
   // 1. Connect to Wi-Fi
