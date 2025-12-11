@@ -119,5 +119,6 @@ This project uses the industry-standard **Nordic UART Service (NUS)** UUIDs. Thi
 ---
 
 ### Author
-**Amit** - *Lead Developer*
+**Amit** - *Lead Developer for firmware / ESP32 C++*
+**Alberto** - * Lead Developer for Android Application / Kotlin & Java *
 *Version 0.1 Beta*
