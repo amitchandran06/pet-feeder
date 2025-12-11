@@ -1,4 +1,4 @@
-# 🐶 Smart Pet Feeder - BLE IoT System
+# Smart Pet Feeder - BLE IoT System
 
 A robust IoT solution for an Automatic Pet Feeder that communicates via **Bluetooth Low Energy (BLE)** using the **ESP32** and a custom **Android App**. This project utilizes the **NimBLE** library for high-performance, low-latency communication.
 
@@ -8,7 +8,7 @@ A robust IoT solution for an Automatic Pet Feeder that communicates via **Blueto
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 1. [System Architecture](#-system-architecture)
 2. [Hardware & Firmware (ESP32)](#-hardware--firmware-esp32)
 3. [Android App (Client)](#-android-app-client)
@@ -18,7 +18,7 @@ A robust IoT solution for an Automatic Pet Feeder that communicates via **Blueto
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 The system follows a standard **GATT Server/Client** architecture:
 
@@ -27,7 +27,7 @@ The system follows a standard **GATT Server/Client** architecture:
 
 ---
 
-## 🔌 Hardware & Firmware (ESP32)
+## Hardware & Firmware (ESP32)
 
 ### Prerequisites
 * **Microcontroller:** ESP32 (WROOM, DevKit V1, etc.)
@@ -49,7 +49,7 @@ The system follows a standard **GATT Server/Client** architecture:
 
 ---
 
-## 📱 Android App (Client)
+## Android App (Client)
 
 The Android application is designed to act as a remote control for the feeder.
 
@@ -69,7 +69,7 @@ The Android application is designed to act as a remote control for the feeder.
 
 ---
 
-## 📡 Communication Protocol
+## Communication Protocol
 
 This project uses the industry-standard **Nordic UART Service (NUS)** UUIDs. This allows you to test the device using generic apps like *nRF Connect* or *Serial Bluetooth Terminal*.
 
@@ -89,7 +89,7 @@ This project uses the industry-standard **Nordic UART Service (NUS)** UUIDs. Thi
 
 ---
 
-## 🛠 Setup & Installation
+## Setup & Installation
 
 ### 1. Flash the ESP32
 1. Open the project in VS Code (PlatformIO) or Arduino IDE.
@@ -105,7 +105,7 @@ This project uses the industry-standard **Nordic UART Service (NUS)** UUIDs. Thi
 
 ---
 
-## ❓ Troubleshooting
+## Troubleshooting
 
 **Issue: The App scans but finds nothing.**
 * **Fix:** Ensure GPS/Location is turned **ON** on your phone. Android blocks BLE scanning without it.
