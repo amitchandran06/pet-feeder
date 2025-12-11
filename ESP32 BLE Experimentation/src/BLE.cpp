@@ -1,45 +1,89 @@
+// PETFEEDER FIRMWARE - VERSION 0.1 BETA (BLE TESTS) - by Amit
+
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 
 // -------------------------------------------------------------------------
-// STANDARD NORDIC UART SERVICE (NUS) UUIDs
-// Using these allows standard "Serial Bluetooth Terminal" apps to work.
+// UUID is up to the discretion of the developer or installer. UUID must be the same on both the mobile client as well the MCU
+// to ensure that Bluetooth device filtering works effectively 
 // -------------------------------------------------------------------------
-#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" 
 #define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E" // App writes here
 #define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" // ESP32 notifies here
 
+// These are alternative UUIDs to ensure filtering within the Android Client (ONLY USE ONE SET OF UUIDS PLS)
+/*
+#define SERVICE_UUID           "A495FF20-C5B5-4B44-B512-1370F02D74DE" 
+#define RX_CHARACTERISTIC_UUID "A495FF20-C5B5-4B44-B512-1370F02D74DE" 
+#define TX_CHARACTERISTIC_UUID "A495FF20-C5B5-4B44-B512-1370F02D74DE"
+*/
+
+// Defining the BLE containers (Characteristics) for RX and TX as NimBLE characteristic objects
 NimBLECharacteristic *pTxCharacteristic;
 NimBLECharacteristic *pRxCharacteristic;
+// Current device conencted status
 volatile bool deviceConnected = false;
+const int ledPin = 14; // Pin to attach LED +Ve pin to 
+
+
+// This function toggles the LED On/Off depending on the inputs
+void ledToggle(std::string toggleStatus){
+    String toggle = toggleStatus.c_str(); // Converting to standard string type
+    Serial.println(toggle);
+
+    // These conditions compare the input to ON / OFF to toggle (including the new line spacing)
+    if(toggle == "ON\r\n"){
+    digitalWrite(ledPin,HIGH);
+    }
+    if(toggle == "OFF\r\n"){
+    digitalWrite(ledPin,LOW);
+    }
+    else{
+    }
+}
 
 // 1. DATA RECEIVING CALLBACKS (Phone -> ESP32)
-class MyCallbacks: public NimBLECharacteristicCallbacks {
+class MyCallbacks:
+ public NimBLECharacteristicCallbacks {
     
-    // NIMBLE V2 SIGNATURE: Includes 'NimBLEConnInfo&'
+    // Here we override the exisitng onWrite method, in this case to print the recieved data to serial
     void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo& connInfo) override {
         std::string value = pCharacteristic->getValue(); 
-        
+        // Checking for data and "echoing" back to the phone to confirm the message arrived
         if (value.length() > 0) {
-            Serial.print("Received from App: ");
-            Serial.println(value.c_str());
-
-            // Example: Control an LED if specific text arrives
-            // if (value == "ON") digitalWrite(2, HIGH);
+        std::string  message = "ESP32 Recieved:  " + value;
+        // Calling the LED toggle and inputting the message in
+        ledToggle(value.c_str());
+        // Echo of input
+        pTxCharacteristic->setValue(message);
+        pTxCharacteristic->notify();
         }
     }
+    //This function is called / overwrites the exisiting function for when a device is subscribed to the bluetooth notifications (for first time connection)
+    void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override {
+
+        if(subValue>0){
+         // Transmitts a confirmation message
+        pTxCharacteristic->setValue("Hi, you have connected to the Pet Feeder's ESP32!!");
+        pTxCharacteristic->notify();
+        }
+     }
+           
+        
+    
 };
 
 // 2. CONNECTION CALLBACKS (Connection Status)
-class ServerCallbacks: public NimBLEServerCallbacks {
+class ServerCallbacks:
+ public NimBLEServerCallbacks {
     
-    // NIMBLE V2 SIGNATURE
+    // Overriding the onConnect function to print the address of the client
     void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
         deviceConnected = true;
         Serial.printf("Client connected: %s\n", connInfo.getAddress().toString().c_str());
-    };
+    }
 
-    // NIMBLE V2 SIGNATURE
+    //Similar procedure for disconnection
     void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
         deviceConnected = false;
         Serial.println("Client disconnected - Restarting Advertising");
@@ -47,38 +91,37 @@ class ServerCallbacks: public NimBLEServerCallbacks {
     }
 };
 
+
+
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting BLE Work!");
+    pinMode(ledPin,OUTPUT);
 
-    // 1. Initialize Device
+    // 1.  Stat by Initialising the Device
     NimBLEDevice::init("ESP32-UART-Device");
-    
-    // 2. Create Server
+    NimBLEDevice::setMTU(517);
+    // 2. Creating the server
     NimBLEServer *pServer = NimBLEDevice::createServer();
-    pServer->setCallbacks(new ServerCallbacks());
+       // Setting the callbacks to the one we created for server connect / DC events
+       pServer->setCallbacks(new ServerCallbacks());
 
-    // 3. Create Service
+    // 3. Create Service 
     NimBLEService *pService = pServer->createService(SERVICE_UUID);
 
-    // 4. Create RX Characteristic (Phone writes to this)
-    pRxCharacteristic = pService->createCharacteristic(
-                           RX_CHARACTERISTIC_UUID,
-                           NIMBLE_PROPERTY::WRITE | 
-                           NIMBLE_PROPERTY::WRITE_NR // "Write No Response" is faster
-                       );
-    pRxCharacteristic->setCallbacks(new MyCallbacks());
+    // 4. Create RX Characteristic (Messages from Android are recieved at this point)
+    pRxCharacteristic = pService->createCharacteristic(RX_CHARACTERISTIC_UUID, NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR); // "Write No Response" is faster
+       // Setting a new callback upon recieving             
+       pRxCharacteristic->setCallbacks(new MyCallbacks());
 
-    // 5. Create TX Characteristic (ESP32 sends updates to this)
-    pTxCharacteristic = pService->createCharacteristic(
-                           TX_CHARACTERISTIC_UUID,
-                           NIMBLE_PROPERTY::NOTIFY
-                       );
-
+    // 5. Create TX Characteristic (ESP32 sends updates to this).
+    pTxCharacteristic = pService->createCharacteristic(TX_CHARACTERISTIC_UUID,NIMBLE_PROPERTY::NOTIFY);
+       //This callback is for the onSubscribe method
+       pTxCharacteristic->setCallbacks(new MyCallbacks());
     // 6. Start Service
     pService->start();
 
-    // 7. Setup Advertising
+    // 7. Now that the service has started and the callbacks are assigned to their relative points, we can begin advertising
     NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     
@@ -90,22 +133,9 @@ void setup() {
     pAdvertising->start();
     
     Serial.println("Advertising Started... Waiting for connection.");
+    
 }
 
 void loop() {
-    if (deviceConnected) {
-        // Example: Send data to the phone every 2 seconds
-        std::string message = "Hello from ESP32: " + std::to_string(millis()/1000) + "\n";
-        
-        pTxCharacteristic->setValue(message);
-        pTxCharacteristic->notify();
-        
-        Serial.print("Sent: ");
-        Serial.println(message.c_str());
-        
-        delay(2000);
-    } else {
-        // Small delay to prevent watchdog crashing when idle
-        delay(500); 
-    }
+    //Loop is empty as all code is run on a callback basis (waiting for an input from the client), the server only RESPONDS
 }
