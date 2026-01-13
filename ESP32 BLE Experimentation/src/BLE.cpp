@@ -1,42 +1,49 @@
-// PETFEEDER FIRMWARE - VERSION 0.1 BETA (BLE TESTS) - by Amit
+// PETFEEDER FIRMWARE - VERSION 0.2 BETA (BLE TESTS) - by Amit
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <AccelStepper.h>
 
 // -------------------------------------------------------------------------
 // UUID is up to the discretion of the developer or installer. UUID must be the same on both the mobile client as well the MCU
 // to ensure that Bluetooth device filtering works effectively 
 // -------------------------------------------------------------------------
-#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" 
-#define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E" // App writes here
-#define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" // ESP32 notifies here
-
-// These are alternative UUIDs to ensure filtering within the Android Client (ONLY USE ONE SET OF UUIDS PLS)
 /*
+#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" 
+#define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E" 
+#define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+*/
+// These are alternative UUIDs to ensure filtering within the Android Client (ONLY USE ONE SET OF UUIDS PLS)
+
 #define SERVICE_UUID           "A495FF20-C5B5-4B44-B512-1370F02D74DE" 
 #define RX_CHARACTERISTIC_UUID "A495FF20-C5B5-4B44-B512-1370F02D74DE" 
 #define TX_CHARACTERISTIC_UUID "A495FF20-C5B5-4B44-B512-1370F02D74DE"
-*/
+
 
 // Defining the BLE containers (Characteristics) for RX and TX as NimBLE characteristic objects
 NimBLECharacteristic *pTxCharacteristic;
 NimBLECharacteristic *pRxCharacteristic;
 // Current device conencted status
 volatile bool deviceConnected = false;
-const int ledPin = 14; // Pin to attach LED +Ve pin to 
+bool motorOn = false;
+const int stepPin = 12; // Pin to attach to STEP of the driver
+const int dirPin = 13; // Pin to attach to DIR 
 
+AccelStepper motor(1, stepPin , dirPin);
 
 // This function toggles the LED On/Off depending on the inputs
-void ledToggle(std::string toggleStatus){
+void motorControl(std::string toggleStatus){
     String toggle = toggleStatus.c_str(); // Converting to standard string type
     Serial.println(toggle);
 
     // These conditions compare the input to ON / OFF to toggle (including the new line spacing)
-    if(toggle == "ON\r\n"){
-    digitalWrite(ledPin,HIGH);
+    if(toggle == "ON\r\n" || toggle == "ON"){
+    motorOn = true;
+    motor.move(1000);
     }
-    if(toggle == "OFF\r\n"){
-    digitalWrite(ledPin,LOW);
+    if(toggle == "OFF\r\n" || toggle == "OFF"){
+    motorOn = false;
+    motor.stop();
     }
     else{
     }
@@ -53,7 +60,7 @@ class MyCallbacks:
         if (value.length() > 0) {
         std::string  message = "ESP32 Recieved:  " + value;
         // Calling the LED toggle and inputting the message in
-        ledToggle(value.c_str());
+        motorControl(value.c_str());
         // Echo of input
         pTxCharacteristic->setValue(message);
         pTxCharacteristic->notify();
@@ -96,7 +103,10 @@ class ServerCallbacks:
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting BLE Work!");
-    pinMode(ledPin,OUTPUT);
+    pinMode(stepPin,OUTPUT);
+    pinMode(dirPin , OUTPUT);
+    motor.setMaxSpeed(1000);
+    motor.setAcceleration(500);
 
     // 1.  Stat by Initialising the Device
     NimBLEDevice::init("ESP32-UART-Device");
@@ -137,5 +147,11 @@ void setup() {
 }
 
 void loop() {
-    //Loop is empty as all code is run on a callback basis (waiting for an input from the client), the server only RESPONDS
+    if(motorOn) {
+        if (motor.distanceToGo() < 500) {
+            motor.move(10000); // Add a large chunk of steps
+        }
+    }
+
+    motor.run();
 }
