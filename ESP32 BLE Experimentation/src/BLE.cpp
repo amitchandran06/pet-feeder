@@ -26,7 +26,7 @@ NimBLECharacteristic *pRxCharacteristic;
 // Current device conencted status
 volatile bool deviceConnected = false;
 bool motorOn = false;
-const int stepPin = 12; // Pin to attach to STEP of the driver
+const int stepPin = 14; // Pin to attach to STEP of the driver
 const int dirPin = 13; // Pin to attach to DIR 
 
 AccelStepper motor(1, stepPin , dirPin);
@@ -105,8 +105,8 @@ void setup() {
     Serial.println("Starting BLE Work!");
     pinMode(stepPin,OUTPUT);
     pinMode(dirPin , OUTPUT);
-    motor.setMaxSpeed(1000);
-    motor.setAcceleration(500);
+    motor.setMaxSpeed(300);
+    motor.setAcceleration(1000);
 
     // 1.  Stat by Initialising the Device
     NimBLEDevice::init("ESP32-UART-Device");
