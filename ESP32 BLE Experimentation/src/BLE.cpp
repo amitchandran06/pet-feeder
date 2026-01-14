@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include <AccelStepper.h>
+#include "HX711.h"
 
 // -------------------------------------------------------------------------
 // UUID is up to the discretion of the developer or installer. UUID must be the same on both the mobile client as well the MCU
@@ -29,10 +30,15 @@ bool motorOn = false;
 const int stepPin = 14; // Pin to attach to STEP of the driver
 const int dirPin = 13; // Pin to attach to DIR 
 
+const int HX711_DT = 15;
+const int HX711_SCK = 16;
+int massConversionFactor = 10^-6; // Default small value
+HX711 scale;
+
 AccelStepper motor(1, stepPin , dirPin);
 
-// This function toggles the LED On/Off depending on the inputs
-void motorControl(std::string toggleStatus){
+// This function toggles the Motor on and Off via bluetooth
+void motorControlBLE(std::string toggleStatus){
     String toggle = toggleStatus.c_str(); // Converting to standard string type
     Serial.println(toggle);
 
@@ -49,6 +55,25 @@ void motorControl(std::string toggleStatus){
     }
 }
 
+void calibrateScale()
+{
+
+}
+
+void feedbackMotorControl(float massInBowl, float desiredMass){
+    // Basic control
+    if (massInBowl < desiredMass)
+    {
+        motor.runSpeed();
+    }
+    else
+    {
+        motor.stop();
+    }
+
+    motor.run();
+}
+
 // 1. DATA RECEIVING CALLBACKS (Phone -> ESP32)
 class MyCallbacks:
  public NimBLECharacteristicCallbacks {
@@ -59,8 +84,10 @@ class MyCallbacks:
         // Checking for data and "echoing" back to the phone to confirm the message arrived
         if (value.length() > 0) {
         std::string  message = "ESP32 Recieved:  " + value;
+        
         // Calling the LED toggle and inputting the message in
-        motorControl(value.c_str());
+        //motorControlBLE(value.c_str());
+
         // Echo of input
         pTxCharacteristic->setValue(message);
         pTxCharacteristic->notify();
@@ -105,9 +132,10 @@ void setup() {
     Serial.println("Starting BLE Work!");
     pinMode(stepPin,OUTPUT);
     pinMode(dirPin , OUTPUT);
-    motor.setMaxSpeed(300);
+    motor.setMaxSpeed(500);
     motor.setAcceleration(1000);
 
+    // BLE SETUP
     // 1.  Stat by Initialising the Device
     NimBLEDevice::init("ESP32-UART-Device");
     NimBLEDevice::setMTU(517);
@@ -144,14 +172,30 @@ void setup() {
     
     Serial.println("Advertising Started... Waiting for connection.");
     
+        // HX711/LOAD CELL/SCALE SETUP
+    Serial.println("Initializing HX711...");
+    scale.begin(HX711_DT, HX711_SCK);
+    // Optional: set gain (128 is default for channel A)
+    scale.set_gain(128);
+    // Tare (zero the scale)
+    Serial.println("Taring...");
+    scale.tare(10);  // average over 10 readings
+    Serial.println("HX711 ready.");
+}
+
+float GetScaleInput(){
+    long raw = scale.read();              // raw ADC value
+    float units = scale.get_units(5);     // averaged reading
+
+    // Convert to mass using conversion factor
+    Serial.println(raw);
+    return raw*massConversionFactor;
 }
 
 void loop() {
-    if(motorOn) {
-        if (motor.distanceToGo() < 500) {
-            motor.move(10000); // Add a large chunk of steps
-        }
-    }
+    // Converted HX711 Input
+    float mass = GetScaleInput();
+    float desiredMass = 0.1; // 100 grams
 
-    motor.run();
+    feedbackMotorControl(mass, desiredMass);
 }
