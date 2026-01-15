@@ -76,7 +76,7 @@ void loop() {
     }
     else{
         motorOn = false;
-        mealEnd();
+        mealEnd(frequency);
     }
 motorControlBLE();
   

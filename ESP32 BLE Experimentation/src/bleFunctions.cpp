@@ -9,6 +9,7 @@ void MyCallbacks::onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo&
     std::string value = pCharacteristic->getValue(); 
     if (value.length() > 0) {
         std::string message = "ESP32 Received: " + value;
+        Serial.println(value[0]);
         setTarget(value.c_str());
         pTxCharacteristic->setValue(message);
         pTxCharacteristic->notify();

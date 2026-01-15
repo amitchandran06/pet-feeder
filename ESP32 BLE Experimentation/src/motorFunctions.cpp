@@ -26,7 +26,7 @@ void motorControlBLE(){
     motor.run();
 }
 
-void mealEnd(){
+void mealEnd(int freq){
    motor.stop() ;
    while(motor.distanceToGo() > 0){
     motor.run();

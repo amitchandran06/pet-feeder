@@ -2,12 +2,10 @@
 
 extern const int HX711_DT;
 extern const int HX711_SCK;
-extern int massConversionFactor; // Default small value
+extern const float massConversionFactor; // Default small value
 extern int targetMass;
 extern int offset;
- int amount;
-  int freq;
- char comma;
+extern int frequency;
 extern HX711 scale;
 
 void calibrateScale();

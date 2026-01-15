@@ -5,8 +5,9 @@
 const int HX711_DT = 15;
 const int HX711_SCK = 16;
 const float massConversionFactor = 10^-6; // Default small value
-const int offset = 0;
+int offset = 0;
 int targetMass =0;
+int frequency =0;
 HX711 scale;
 
 float checkMass(float targetMass){
@@ -14,18 +15,21 @@ float checkMass(float targetMass){
     float units = scale.get_units(5);     // averaged reading
 
     // Convert to mass using conversion factor
-    Serial.println(raw);
     float mass = (raw-offset)*massConversionFactor;
     float massRemaining = targetMass - mass;
     return massRemaining;
 }
 
 void setTarget(std::string mealInfo){
+    int amount = 0;
+    int freq = 0;
+    char comma = ',';
     motorOn = false;
-    String mealInfo = mealInfo.c_str(); // Converting to standard string type
     std::stringstream ss(mealInfo);
     ss >> amount >> comma >> freq;
     targetMass = amount;
+    frequency = freq;
+    Serial.println(amount);
 }
 
 void calibrateScale()
