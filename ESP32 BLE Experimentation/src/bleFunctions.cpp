@@ -2,13 +2,14 @@
 #include <NimBLEDevice.h>
 #include "bleFunctions.h"   // Use quotes for local files
 #include "motorFunctions.h" 
+#include <weightFunctions.h>
 
 // Implementation of MyCallbacks
 void MyCallbacks::onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo& connInfo) {
     std::string value = pCharacteristic->getValue(); 
     if (value.length() > 0) {
         std::string message = "ESP32 Received: " + value;
-        motorControlBLE(value.c_str());
+        setTarget(value.c_str());
         pTxCharacteristic->setValue(message);
         pTxCharacteristic->notify();
     }

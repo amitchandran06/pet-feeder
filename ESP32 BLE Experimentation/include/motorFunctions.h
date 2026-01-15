@@ -7,4 +7,5 @@ extern const int dirPin; // Pin to attach to DIR
 extern AccelStepper motor;
 
 
-void motorControlBLE(std::string toggleStatus);
+void motorControlBLE();
+void mealEnd();

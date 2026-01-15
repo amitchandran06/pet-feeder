@@ -8,16 +8,7 @@
 #include <motorFunctions.h>
 #include <weightFunctions.h>
 
-// -------------------------------------------------------------------------
-// UUID is up to the discretion of the developer or installer. UUID must be the same on both the mobile client as well the MCU
-// to ensure that Bluetooth device filtering works effectively 
-// -------------------------------------------------------------------------
-/*
-#define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" 
-#define RX_CHARACTERISTIC_UUID "6E400002-B5A3-F393-E0A9-E50E24DCCA9E" 
-#define TX_CHARACTERISTIC_UUID "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
-*/
-// These are alternative UUIDs to ensure filtering within the Android Client (ONLY USE ONE SET OF UUIDS PLS)
+
 
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 NimBLECharacteristic *pRxCharacteristic = nullptr;
@@ -29,11 +20,12 @@ void setup() {
     Serial.println("Starting BLE Work!");
     pinMode(stepPin,OUTPUT);
     pinMode(dirPin , OUTPUT);
+    motorOn = false;
     motor.setMaxSpeed(500);
     motor.setAcceleration(1000);
 
     // BLE SETUP
-    // 1.  Stat by Initialising the Device
+    // 1.  Start by Initialising the Device
     NimBLEDevice::init("ESP32-UART-Device");
     NimBLEDevice::setMTU(517);
     // 2. Creating the server
@@ -69,27 +61,23 @@ void setup() {
     
     Serial.println("Advertising Started... Waiting for connection.");
     
-        // HX711/LOAD CELL/SCALE SETUP
-    Serial.println("Initializing HX711...");
-    scale.begin(HX711_DT, HX711_SCK);
-    // Optional: set gain (128 is default for channel A)
-    scale.set_gain(128);
-    // Tare (zero the scale)
-    Serial.println("Taring...");
-    scale.tare(10);  // average over 10 readings
-    Serial.println("HX711 ready.");
+    //Initialise HX711 scale
+    initScale();  
 }
 
 
 
 void loop() {
     // Converted HX711 Input
-    float mass = checkMass(targetMass);
+    float massRemaining = checkMass(targetMass);
     
-
-    if(motorOn) {
-        if (motor.distanceToGo() < 500) {
-            motor.move(10000); // Add a large chunk of steps
-        }
+    if (massRemaining > 0) {
+        motorOn = true;
     }
+    else{
+        motorOn = false;
+        mealEnd();
+    }
+motorControlBLE();
+  
 }
