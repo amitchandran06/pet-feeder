@@ -5,6 +5,7 @@ extern const int HX711_SCK;
 extern const float massConversionFactor; // Default small value
 extern int targetMass;
 extern int offset;
+extern  float massRemaining;
 extern int frequency;
 extern HX711 scale;
 

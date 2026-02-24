@@ -9,7 +9,8 @@
 #include <weightFunctions.h>
 
 
-
+unsigned long lastWeightCheck = 0;
+const long weightInterval = 500; // Check every 200ms
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 NimBLECharacteristic *pRxCharacteristic = nullptr;
 volatile bool deviceConnected = false;
@@ -21,7 +22,7 @@ void setup() {
     pinMode(stepPin,OUTPUT);
     pinMode(dirPin , OUTPUT);
     motorOn = false;
-    motor.setMaxSpeed(500);
+    motor.setMaxSpeed(100);
     motor.setAcceleration(1000);
 
     // BLE SETUP
@@ -62,15 +63,22 @@ void setup() {
     Serial.println("Advertising Started... Waiting for connection.");
     
     //Initialise HX711 scale
-    initScale();  
+    initScale();
+    calibrateScale();  
 }
 
 
 
 void loop() {
-    // Converted HX711 Input
-    float massRemaining = checkMass(targetMass);
+   
     
+   unsigned long currentMillis = millis();
+
+    // Only check the scale occasionally
+    if (currentMillis - lastWeightCheck >= weightInterval) {
+        massRemaining = checkMass(targetMass);
+        lastWeightCheck = currentMillis;
+    } 
     if (massRemaining > 0) {
         motorOn = true;
     }
