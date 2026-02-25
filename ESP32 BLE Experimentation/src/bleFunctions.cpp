@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
-
+#include <timeKeep.h>
 #include "bleFunctions.h"   // Use quotes for local files
 #include "motorFunctions.h" 
 #include <weightFunctions.h>
@@ -12,6 +12,7 @@ void MyCallbacks::onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo&
         std::string message = "ESP32 Received: " + value;
         Serial.println(value[0]);
         setTarget(value.c_str());
+        syncTime(currentSystemTime);
         Serial.println(value.c_str());
         pTxCharacteristic->setValue(message);
         pTxCharacteristic->notify();

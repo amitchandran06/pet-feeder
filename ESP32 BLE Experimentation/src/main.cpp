@@ -7,10 +7,13 @@
 #include <bleFunctions.h>
 #include <motorFunctions.h>
 #include <weightFunctions.h>
-
+#include <time.h>
+#include <timeKeep.h>
 
 unsigned long lastWeightCheck = 0;
-const long weightInterval = 500; // Check every 200ms
+const long weightInterval = 1300; // Check every 200ms
+unsigned long lastTimeCheck =0;
+const long timeInterval = 1000*10;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 NimBLECharacteristic *pRxCharacteristic = nullptr;
 volatile bool deviceConnected = false;
@@ -22,8 +25,8 @@ void setup() {
     pinMode(stepPin,OUTPUT);
     pinMode(dirPin , OUTPUT);
     motorOn = false;
-    motor.setMaxSpeed(100);
-    motor.setAcceleration(1000);
+    motor.setMaxSpeed(50);
+    motor.setAcceleration(500);
 
     // BLE SETUP
     // 1.  Start by Initialising the Device
@@ -70,22 +73,41 @@ void setup() {
 
 
 void loop() {
-   
-    
-   unsigned long currentMillis = millis();
 
-    // Only check the scale occasionally
-    if (currentMillis - lastWeightCheck >= weightInterval) {
-        massRemaining = checkMass(targetMass);
-        lastWeightCheck = currentMillis;
-    } 
-    if (massRemaining > 0) {
-        motorOn = true;
-    }
-    else{
-        motorOn = false;
-        mealEnd(frequency);
-    }
+
+unsigned long currentMillis = millis();
+
+if(currentMillis - lastTimeCheck >= timeInterval){
+updateGlobalTime();
+}
+
+if(String(globalTimeStr) == scheduledMeals[0].time){
+
+if(currentMillis - lastWeightCheck >= weightInterval) {
+massRemaining = checkMass(int(scheduledMeals[0].qty));
+ long raw = scale.read();              // raw ADC value
+    float mass = scale.get_units(10);     // averaged reading
+    // Convert to mass using conversion factor
+    float massRemaining = targetMass - mass;
+    Serial.println(mass);
+if(massRemaining > 0){
+    motorOn = true;
+}
+
+else {
+    motorOn = false;
+    mealEnd();
+}
+lastWeightCheck = millis();
+
+}
+
+   
+}
+
+else {
+    motorOn = false;
+    mealEnd();
+}
 motorControlBLE();
-  
 }

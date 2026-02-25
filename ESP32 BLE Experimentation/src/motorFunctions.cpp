@@ -26,10 +26,10 @@ void motorControlBLE(){
     motor.run();
 }
 
-void mealEnd(int freq){
+void mealEnd(){
    motor.stop() ;
    while(motor.distanceToGo() > 0){
     motor.run();
    } 
-   delay(freq*1000);
+
 }

@@ -8,4 +8,4 @@ extern AccelStepper motor;
 
 
 void motorControlBLE();
-void mealEnd(int freq);
+void mealEnd();
