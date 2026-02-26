@@ -1,4 +1,4 @@
-// PETFEEDER FIRMWARE - VERSION 0.2 BETA (BLE TESTS) - by Amit
+// PETFEEDER FIRMWARE - VERSION 1 (Beta) - by Amit
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
@@ -11,9 +11,9 @@
 #include <timeKeep.h>
 
 unsigned long lastWeightCheck = 0;
-const long weightInterval = 1300; // Check every 200ms
+const long weightInterval = 1300; // Check weight every 1300ms (corresponds to roughly 120 degrees of motor movement)
 unsigned long lastTimeCheck =0;
-const long timeInterval = 1000*10;
+const long timeInterval = 1000*10; // Check time every 10s ( this level of accuracy is enough)
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 NimBLECharacteristic *pRxCharacteristic = nullptr;
 volatile bool deviceConnected = false;
@@ -22,15 +22,16 @@ volatile bool deviceConnected = false;
 void setup() {
     Serial.begin(115200);
     Serial.println("Starting BLE Work!");
-    pinMode(stepPin,OUTPUT);
+    pinMode(stepPin,OUTPUT); // Set the driver pins to outputs
     pinMode(dirPin , OUTPUT);
-    motorOn = false;
+    pinMode(enPin , OUTPUT);
+    motorOn = false; // Default to the motor being off
     motor.setMaxSpeed(50);
     motor.setAcceleration(500);
 
     // BLE SETUP
     // 1.  Start by Initialising the Device
-    NimBLEDevice::init("ESP32-UART-Device");
+    NimBLEDevice::init("S40 Pet Feeder Device");
     NimBLEDevice::setMTU(517);
     // 2. Creating the server
     NimBLEServer *pServer = NimBLEDevice::createServer();
@@ -73,41 +74,37 @@ void setup() {
 
 
 void loop() {
+   // Creating a currentTime stamp
+    unsigned long currentMillis = millis();
 
+    //Here we check if a set interval of time has passed before updating system time (to reduce system load)
+    if(currentMillis - lastTimeCheck >= timeInterval){
+        updateGlobalTime();
+        lastTimeCheck = currentMillis; 
+    }
 
-unsigned long currentMillis = millis();
+    bool runningState = false; // Start the loop by setting motor flag false 
 
-if(currentMillis - lastTimeCheck >= timeInterval){
-updateGlobalTime();
-}
+    // This loop iterates through the scheduledMeal struct (from JSON) and searches if the time matches 
+    for(int i = 0; i <= totalMeals; i++){
+      // the first check is to see if the time is correct for the feeding scheulde (to the minute)
+        if(String(globalTimeStr) == scheduledMeals[i].time){
 
-if(String(globalTimeStr) == scheduledMeals[0].time){
+         // If the time conidtion is met, we check what the mass of the scale is
+            if(currentMillis - lastWeightCheck >= weightInterval) {
+                massRemaining = checkMass(int(scheduledMeals[i].qty));
+                lastWeightCheck = currentMillis;
+            }
+            // Only if there is a positive remaining mass do we set the running state to ON  
+            if(massRemaining > 0){
+               runningState = true; 
+            }
+        }
+    }
 
-if(currentMillis - lastWeightCheck >= weightInterval) {
-massRemaining = checkMass(int(scheduledMeals[0].qty));
- long raw = scale.read();              // raw ADC value
-    float mass = scale.get_units(10);     // averaged reading
-    // Convert to mass using conversion factor
-    float massRemaining = targetMass - mass;
-    Serial.println(mass);
-if(massRemaining > 0){
-    motorOn = true;
-}
+    // Set motorOn to whatever the runningState is
+    motorOn = runningState;
 
-else {
-    motorOn = false;
-    mealEnd();
-}
-lastWeightCheck = millis();
-
-}
-
-   
-}
-
-else {
-    motorOn = false;
-    mealEnd();
-}
-motorControlBLE();
+    // This calls the function in motorFunctions.cpp to actually run the motor
+    motorControlBLE();
 }

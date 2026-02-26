@@ -9,12 +9,15 @@
 
 bool motorOn = false;
 const int stepPin = 14; // Pin to attach to STEP of the driver
-const int dirPin = 13; // Pin to attach to DIR 
+const int dirPin = 13; // Pin to attach to DIR
+const int enPin = 12; // Enable Pin
 AccelStepper motor(1, stepPin , dirPin);
 
 // This function toggles the Motor on and Off via bluetooth
 void motorControlBLE(){
   if(motorOn) {
+    Serial.println("Running Motor");
+   digitalWrite(enPin,LOW);
         if(motor.distanceToGo()<500){
             motor.move(10000); // Add a large chunk of steps
         }
@@ -22,6 +25,7 @@ void motorControlBLE(){
 
     else {
         motor.stop();
+         digitalWrite(enPin,HIGH);
     }
     motor.run();
 }

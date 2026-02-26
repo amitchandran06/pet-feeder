@@ -22,10 +22,12 @@ float checkMass(float targetMass){
     float mass = scale.get_units(10);     // averaged reading
     // Convert to mass using conversion factor
     float massRemaining = targetMass - mass;
-    Serial.println(mass);
+    Serial.println(massRemaining);
     return massRemaining;
 }
 
+
+// This function pulls both the time and meal quantities from the JSON file transmitted over BLE
 void setTarget(std::string mealInfo){
    const char* c_str_data = mealInfo.c_str();
 
