@@ -30,9 +30,9 @@ The system follows a standard **GATT Server/Client** architecture:
 ## Hardware & Firmware (ESP32)
 
 ### Prerequisites
-* **Microcontroller:** ESP32 (WROOM, DevKit V1, etc.)
-* **Framework:** Arduino IDE or PlatformIO (VS Code)
-* **Library:** `NimBLE-Arduino` by h2zero (v1.4 or v2.x compatible)
+* **Microcontroller:** ESP32-S3 (e.g., esp32s3box)
+* **Framework:** PlatformIO (VS Code)
+* **Libraries:** `NimBLE-Arduino`, `AccelStepper`, `HX711`, `ArduinoJson`
 
 ### Features Implemented
 * ✅ **NimBLE Stack:** Uses 50% less RAM/Flash than standard Bluedroid.
@@ -42,10 +42,12 @@ The system follows a standard **GATT Server/Client** architecture:
 * ✅ **Welcome Handshake:** Waits for the client to Subscribe before sending the welcome message (prevents data loss).
 
 ### Pin Configuration
-| Component | ESP32 Pin | Logic |
+| Component | ESP32-S3 Pin | Description |
 | :--- | :--- | :--- |
-| **Status LED** | GPIO 2 | High = ON |
-| **Feeder Motor** | GPIO 5 (Example) | High = Active |
+| **Stepper Motor (STEP)** | GPIO 14 | Controls motor steps |
+| **Stepper Motor (DIR)** | GPIO 13 | Controls motor direction |
+| **Stepper Motor (EN)** | GPIO 12 | Enables motor driver |
+| **Load Cell (HX711)** | Configurable | Measures food weight |
 
 ---
 
@@ -76,16 +78,14 @@ This project uses the industry-standard **Nordic UART Service (NUS)** UUIDs. Thi
 ### UUID Configuration
 | Component | UUID | Description |
 | :--- | :--- | :--- |
-| **Service** | `6E400001-B5A3-F393-E0A9-E50E24DCCA9E` | The main container. |
-| **RX Char** | `6E400002-B5A3-F393-E0A9-E50E24DCCA9E` | **Phone -> ESP32** (Write). |
-| **TX Char** | `6E400003-B5A3-F393-E0A9-E50E24DCCA9E` | **ESP32 -> Phone** (Notify). |
+| **Service** | `A495FF20-C5B5-4B44-B512-1370F02D74DE` | The main container. |
+| **RX Char** | `A495FF20-C5B5-4B44-B512-1370F02D74DE` | **Phone -> ESP32** (Write). |
+| **TX Char** | `A495FF20-C5B5-4B44-B512-1370F02D74DE` | **ESP32 -> Phone** (Notify). |
 
 ### Command List
 | Command | Action on ESP32 | Response (TX) |
 | :--- | :--- | :--- |
-| `"ON"` | Turns on the LED / Motor | `>> Turning ON` |
-| `"OFF"` | Turns off the LED / Motor | `>> Turning OFF` |
-| *Any* | Unknown command | `Command not recognized` |
+| *JSON / Payload* | Parsed as target parameters or time sync | `ESP32 Received: <value>` |
 
 ---
 
